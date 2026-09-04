@@ -46,6 +46,10 @@ public class MainActivity extends AppCompatActivity {
     private CheckBox cbTrimBottom;
     private CheckBox cbPrintTimestamp;
     private CheckBox cbAdvanceMargin;
+    private CheckBox cbExtraFeed;
+    private TextView tvExtraLinesCount;
+    private Button btnMinusLines, btnPlusLines;
+    private int extraFeedLines = 2;
 
     private Button btnPrint;
     private ProgressBar progressBar;
@@ -96,6 +100,10 @@ public class MainActivity extends AppCompatActivity {
         cbTrimBottom = findViewById(R.id.cbTrimBottom);
         cbPrintTimestamp = findViewById(R.id.cbPrintTimestamp);
         cbAdvanceMargin = findViewById(R.id.cbAdvanceMargin);
+        cbExtraFeed = findViewById(R.id.cbExtraFeed);
+        tvExtraLinesCount = findViewById(R.id.tvExtraLinesCount);
+        btnMinusLines = findViewById(R.id.btnMinusLines);
+        btnPlusLines = findViewById(R.id.btnPlusLines);
 
         btnPrint = findViewById(R.id.btnPrint);
         progressBar = findViewById(R.id.progressBar);
@@ -132,7 +140,34 @@ public class MainActivity extends AppCompatActivity {
         cbPrintTimestamp.setOnCheckedChangeListener((btn, isChecked) -> reprocessCurrentBitmap());
         cbAdvanceMargin.setOnCheckedChangeListener((btn, isChecked) -> reprocessCurrentBitmap());
 
+        cbExtraFeed.setOnCheckedChangeListener((btn, isChecked) -> {
+            btnMinusLines.setEnabled(isChecked);
+            btnPlusLines.setEnabled(isChecked);
+            tvExtraLinesCount.setAlpha(isChecked ? 1.0f : 0.4f);
+            reprocessCurrentBitmap();
+        });
+
+        btnMinusLines.setOnClickListener(v -> {
+            if (extraFeedLines > 0) {
+                extraFeedLines--;
+                updateExtraLinesUi();
+                reprocessCurrentBitmap();
+            }
+        });
+
+        btnPlusLines.setOnClickListener(v -> {
+            if (extraFeedLines < 15) {
+                extraFeedLines++;
+                updateExtraLinesUi();
+                reprocessCurrentBitmap();
+            }
+        });
+
         btnPrint.setOnClickListener(v -> executePrint());
+    }
+
+    private void updateExtraLinesUi() {
+        tvExtraLinesCount.setText(extraFeedLines == 1 ? "1 línea" : extraFeedLines + " líneas");
     }
 
     private void handleIncomingIntent(Intent intent) {
@@ -246,8 +281,9 @@ public class MainActivity extends AppCompatActivity {
         boolean trim = cbTrimBottom.isChecked();
         boolean timestamp = cbPrintTimestamp.isChecked();
         boolean advance = cbAdvanceMargin.isChecked();
+        int extraLines = cbExtraFeed.isChecked() ? extraFeedLines : 0;
 
-        currentProcessed = EscPosRasterizer.process(currentRawBitmap, targetWidth, threshold, trim, timestamp, advance);
+        currentProcessed = EscPosRasterizer.process(currentRawBitmap, targetWidth, threshold, trim, timestamp, advance, extraLines);
 
         ivThermalPreview.setImageBitmap(currentProcessed.previewBitmap);
         btnPrint.setText(targetWidth == 576 ? R.string.btn_print_576 : R.string.btn_print_384);

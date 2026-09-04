@@ -62,17 +62,18 @@ jobs:
         continue-on-error: true
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
-          tag_name: v1.0.2
-          name: "TermiPrint Pro v1.0.2 (APK Instalable)"
+          tag_name: v1.0.3
+          name: "TermiPrint Pro v1.0.3 (APK Instalable)"
           body: |
-            ### 🖨️ TermiPrint Pro v1.0.2 para Android
-            - **Recorte inteligente de espacio en blanco inferior:** Corta a medio centímetro del final del contenido real.
+            ### 🖨️ TermiPrint Pro v1.0.3 para Android
+            - **Casilla de avance de líneas configurable:** Elige exactamente cuántas líneas avanzar al terminar el ticket (por defecto 2 líneas) con botones `+` y `-` para sacar y cortar el papel fácilmente sin avanzar manualmente.
             - **Fecha y hora al pie del ticket:** Impresión clara de fecha y hora al terminar.
-            - **Icono HD en pantalla:** Icono grande, nítido y con alto contraste en el escritorio de Android.
-            - **Bluetooth nativo y menú Compartir:** Integración total sin marcas publicitarias.
+            - **Recorte inteligente de espacio en blanco:** Sin desperdicio de papel.
+            - **Icono HD en pantalla:** Icono nítido de alta resolución.
+            - **Bluetooth nativo y menú Compartir:** Integración directa desde PDF, web o cualquier app.
             
             **Instrucciones:**
-            Descarga `TermiPrint-Pro.apk` en tu tablet Xiaomi, ábrelo para instalar y listo.
+            Descarga `TermiPrint-Pro.apk` en tu tablet Xiaomi, ábrelo para actualizar/instalar y listo.
           files: release_apk/TermiPrint-Pro.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

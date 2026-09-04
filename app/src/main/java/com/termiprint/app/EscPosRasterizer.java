@@ -31,9 +31,11 @@ public class EscPosRasterizer {
      * @param trimBottom Recortar espacio en blanco sobrante inferior
      * @param printTimestamp Imprimir pie de fecha y hora al final
      * @param advanceMargin Cortar a medio centímetro
+     * @param extraFeedLines Líneas adicionales a avanzar al terminar
      */
     public static ProcessedResult process(Bitmap srcBitmap, int targetWidth, int threshold,
-                                          boolean trimBottom, boolean printTimestamp, boolean advanceMargin) {
+                                          boolean trimBottom, boolean printTimestamp, boolean advanceMargin,
+                                          int extraFeedLines) {
         int srcWidth = srcBitmap.getWidth();
         int srcHeight = srcBitmap.getHeight();
 
@@ -176,6 +178,11 @@ public class EscPosRasterizer {
             // ESC J 36 (avanza exactamente 36 puntos = aprox 4.5 mm)
             if (advanceMargin) {
                 baos.write(new byte[]{0x1B, 0x4A, 0x24});
+            }
+
+            // Avance adicional de líneas configurables por el usuario (ESC d n)
+            if (extraFeedLines > 0) {
+                baos.write(new byte[]{0x1B, 0x64, (byte) Math.min(extraFeedLines, 15)});
             }
 
         } catch (IOException ignored) {}
