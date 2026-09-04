@@ -181,20 +181,28 @@
                             android:progress="130" />
 
                         <CheckBox
-                            android:id="@+id/cbFeedLines"
+                            android:id="@+id/cbTrimBottom"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:checked="true"
-                            android:text="Avanzar 4 líneas al terminar"
-                            android:textColor="@color/text_muted" />
+                            android:text="Recortar espacio en blanco inferior (Auto-recorte)"
+                            android:textColor="@color/text_white" />
 
                         <CheckBox
-                            android:id="@+id/cbCutPaper"
+                            android:id="@+id/cbPrintTimestamp"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:checked="true"
-                            android:text="Comando de corte parcial (Guillotina)"
+                            android:text="Imprimir fecha y hora al final del ticket"
+                            android:textColor="@color/text_white" />
+
+                        <CheckBox
+                            android:id="@+id/cbAdvanceMargin"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="Margen de corte a medio centímetro (~0.5 cm)"
                             android:textColor="@color/text_muted" />
                     </LinearLayout>
                 </androidx.cardview.widget.CardView>

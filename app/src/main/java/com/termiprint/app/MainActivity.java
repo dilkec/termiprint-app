@@ -43,8 +43,9 @@ public class MainActivity extends AppCompatActivity {
     private RadioButton rb80mm;
     private TextView tvContrastLabel;
     private SeekBar sbContrast;
-    private CheckBox cbFeedLines;
-    private CheckBox cbCutPaper;
+    private CheckBox cbTrimBottom;
+    private CheckBox cbPrintTimestamp;
+    private CheckBox cbAdvanceMargin;
 
     private Button btnPrint;
     private ProgressBar progressBar;
@@ -92,8 +93,9 @@ public class MainActivity extends AppCompatActivity {
         rb80mm = findViewById(R.id.rb80mm);
         tvContrastLabel = findViewById(R.id.tvContrastLabel);
         sbContrast = findViewById(R.id.sbContrast);
-        cbFeedLines = findViewById(R.id.cbFeedLines);
-        cbCutPaper = findViewById(R.id.cbCutPaper);
+        cbTrimBottom = findViewById(R.id.cbTrimBottom);
+        cbPrintTimestamp = findViewById(R.id.cbPrintTimestamp);
+        cbAdvanceMargin = findViewById(R.id.cbAdvanceMargin);
 
         btnPrint = findViewById(R.id.btnPrint);
         progressBar = findViewById(R.id.progressBar);
@@ -126,8 +128,9 @@ public class MainActivity extends AppCompatActivity {
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
-        cbFeedLines.setOnCheckedChangeListener((btn, isChecked) -> reprocessCurrentBitmap());
-        cbCutPaper.setOnCheckedChangeListener((btn, isChecked) -> reprocessCurrentBitmap());
+        cbTrimBottom.setOnCheckedChangeListener((btn, isChecked) -> reprocessCurrentBitmap());
+        cbPrintTimestamp.setOnCheckedChangeListener((btn, isChecked) -> reprocessCurrentBitmap());
+        cbAdvanceMargin.setOnCheckedChangeListener((btn, isChecked) -> reprocessCurrentBitmap());
 
         btnPrint.setOnClickListener(v -> executePrint());
     }
@@ -240,10 +243,11 @@ public class MainActivity extends AppCompatActivity {
 
         int targetWidth = rb80mm.isChecked() ? 576 : 384;
         int threshold = sbContrast.getProgress();
-        boolean feed = cbFeedLines.isChecked();
-        boolean cut = cbCutPaper.isChecked();
+        boolean trim = cbTrimBottom.isChecked();
+        boolean timestamp = cbPrintTimestamp.isChecked();
+        boolean advance = cbAdvanceMargin.isChecked();
 
-        currentProcessed = EscPosRasterizer.process(currentRawBitmap, targetWidth, threshold, feed, cut);
+        currentProcessed = EscPosRasterizer.process(currentRawBitmap, targetWidth, threshold, trim, timestamp, advance);
 
         ivThermalPreview.setImageBitmap(currentProcessed.previewBitmap);
         btnPrint.setText(targetWidth == 576 ? R.string.btn_print_576 : R.string.btn_print_384);

@@ -1,12 +1,20 @@
 package com.termiprint.app;
 
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Typeface;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 /**
- * Conversor de Bitmaps a comandos binarios ESC/POS (GS v 0) con difusión Floyd-Steinberg.
+ * Conversor de Bitmaps a comandos binarios ESC/POS (GS v 0)
+ * Incluye recorte inteligente de espacio en blanco inferior e impresión opcional de fecha/hora.
  */
 public class EscPosRasterizer {
 
@@ -16,26 +24,28 @@ public class EscPosRasterizer {
     }
 
     /**
-     * Procesa un Bitmap fuente al ancho exacto de la impresora térmica con algoritmo Floyd-Steinberg.
+     * Procesa un Bitmap fuente al ancho exacto de la impresora térmica.
      * @param srcBitmap Imagen original
      * @param targetWidth 576 o 384 puntos
-     * @param threshold Umbral de luminosidad (típicamente 130)
-     * @param feedLines Si avanzar papel al final
-     * @param cutPaper Si enviar comando de corte
+     * @param threshold Umbral de luminosidad (50 - 220)
+     * @param trimBottom Recortar espacio en blanco sobrante inferior
+     * @param printTimestamp Imprimir pie de fecha y hora al final
+     * @param advanceMargin Cortar a medio centímetro
      */
-    public static ProcessedResult process(Bitmap srcBitmap, int targetWidth, int threshold, boolean feedLines, boolean cutPaper) {
+    public static ProcessedResult process(Bitmap srcBitmap, int targetWidth, int threshold,
+                                          boolean trimBottom, boolean printTimestamp, boolean advanceMargin) {
         int srcWidth = srcBitmap.getWidth();
         int srcHeight = srcBitmap.getHeight();
 
         float scale = (float) targetWidth / srcWidth;
         int targetHeight = Math.max(1, Math.round(srcHeight * scale));
 
-        // Escalar mapa de bits
+        // 1. Escalar mapa de bits original
         Bitmap scaled = Bitmap.createScaledBitmap(srcBitmap, targetWidth, targetHeight, true);
         int[] pixels = new int[targetWidth * targetHeight];
         scaled.getPixels(pixels, 0, targetWidth, 0, 0, targetWidth, targetHeight);
 
-        // Convertir a escala de grises
+        // 2. Convertir a escala de grises
         float[] gray = new float[targetWidth * targetHeight];
         for (int i = 0; i < pixels.length; i++) {
             int p = pixels[i];
@@ -45,17 +55,21 @@ public class EscPosRasterizer {
             gray[i] = 0.299f * r + 0.587f * g + 0.114f * b;
         }
 
-        // Difusión de error Floyd-Steinberg
+        // 3. Difusión de error Floyd-Steinberg
         byte[] bits = new byte[targetWidth * targetHeight];
-        int[] outPixels = new int[targetWidth * targetHeight];
+        int lastContentRow = 0;
 
         for (int y = 0; y < targetHeight; y++) {
             for (int x = 0; x < targetWidth; x++) {
                 int idx = y * targetWidth + x;
                 float oldVal = gray[idx];
                 float newVal = oldVal < threshold ? 0 : 255;
-                bits[idx] = (byte) (newVal == 0 ? 1 : 0);
-                outPixels[idx] = newVal == 0 ? Color.BLACK : Color.WHITE;
+                byte bitVal = (byte) (newVal == 0 ? 1 : 0);
+                bits[idx] = bitVal;
+
+                if (bitVal == 1) {
+                    lastContentRow = y;
+                }
 
                 float err = oldVal - newVal;
                 if (x + 1 < targetWidth) gray[idx + 1] += (err * 7) / 16;
@@ -65,29 +79,76 @@ public class EscPosRasterizer {
             }
         }
 
-        // Crear Bitmap monocromático para la previsualización visual
-        Bitmap preview = Bitmap.createBitmap(outPixels, targetWidth, targetHeight, Bitmap.Config.ARGB_8888);
+        // 4. Recorte de espacio en blanco inferior
+        int effectiveHeight = targetHeight;
+        if (trimBottom && lastContentRow > 0) {
+            // Guardar solo hasta la última fila con tinta + pequeño margen de 15 puntos (~2mm)
+            effectiveHeight = Math.min(targetHeight, lastContentRow + 15);
+        }
 
-        // Generar secuencia de bytes ESC/POS
+        // 5. Agregar Fecha y Hora si está activado
+        int timestampExtraHeight = printTimestamp ? 40 : 0;
+        int finalHeight = effectiveHeight + timestampExtraHeight;
+
+        // Crear mapa de bits final para previsualización
+        Bitmap finalBitmap = Bitmap.createBitmap(targetWidth, finalHeight, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(finalBitmap);
+        canvas.drawColor(Color.WHITE);
+
+        // Volcar contenido procesado
+        int[] outPixels = new int[targetWidth * effectiveHeight];
+        for (int i = 0; i < outPixels.length; i++) {
+            outPixels[i] = (bits[i] == 1) ? Color.BLACK : Color.WHITE;
+        }
+        finalBitmap.setPixels(outPixels, 0, targetWidth, 0, 0, targetWidth, effectiveHeight);
+
+        // Dibujar fecha y hora al final
+        byte[] finalBits = new byte[targetWidth * finalHeight];
+        System.arraycopy(bits, 0, finalBits, 0, targetWidth * effectiveHeight);
+
+        if (printTimestamp) {
+            Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            textPaint.setColor(Color.BLACK);
+            textPaint.setTextSize(20f);
+            textPaint.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));
+            textPaint.setTextAlign(Paint.Align.CENTER);
+
+            String timeStr = "Impreso: " + new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(new Date());
+            float textY = effectiveHeight + 26f;
+            canvas.drawText(timeStr, targetWidth / 2f, textY, textPaint);
+
+            // Rasterizar la sección del texto a los bits finales
+            int[] textPixels = new int[targetWidth * timestampExtraHeight];
+            finalBitmap.getPixels(textPixels, 0, targetWidth, 0, effectiveHeight, targetWidth, timestampExtraHeight);
+            for (int i = 0; i < textPixels.length; i++) {
+                int p = textPixels[i];
+                int r = (p >> 16) & 0xFF;
+                int g = (p >> 8) & 0xFF;
+                int b = p & 0xFF;
+                float luminance = 0.299f * r + 0.587f * g + 0.114f * b;
+                finalBits[targetWidth * effectiveHeight + i] = (byte) (luminance < 160 ? 1 : 0);
+            }
+        }
+
+        // 6. Generar comandos ESC/POS
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try {
-            // 1. Resetear impresora: ESC @
+            // Inicializar impresora: ESC @
             baos.write(new byte[]{0x1B, 0x40});
-            // 2. Alinear izquierda: ESC a 0
+            // Alinear al centro o izquierda: ESC a 0
             baos.write(new byte[]{0x1B, 0x61, 0x00});
 
             int widthBytes = (targetWidth + 7) / 8;
-            int bandHeight = 128; // Bandas seguras de 128 líneas de alto
+            int bandHeight = 128;
 
             int yOffset = 0;
-            while (yOffset < targetHeight) {
-                int currentBandHeight = Math.min(bandHeight, targetHeight - yOffset);
+            while (yOffset < finalHeight) {
+                int currentBandHeight = Math.min(bandHeight, finalHeight - yOffset);
 
-                // GS v 0 m xL xH yL yH
-                baos.write(0x1D);
-                baos.write(0x76);
-                baos.write(0x30);
-                baos.write(0x00);
+                baos.write(0x1D); // GS
+                baos.write(0x76); // v
+                baos.write(0x30); // 0
+                baos.write(0x00); // m
                 baos.write(widthBytes & 0xFF);
                 baos.write((widthBytes >> 8) & 0xFF);
                 baos.write(currentBandHeight & 0xFF);
@@ -100,7 +161,7 @@ public class EscPosRasterizer {
                         for (int bit = 0; bit < 8; bit++) {
                             int actualX = xByte * 8 + bit;
                             if (actualX < targetWidth) {
-                                if (bits[actualY * targetWidth + actualX] == 1) {
+                                if (finalBits[actualY * targetWidth + actualX] == 1) {
                                     byteVal |= (0x80 >> bit);
                                 }
                             }
@@ -111,19 +172,16 @@ public class EscPosRasterizer {
                 yOffset += currentBandHeight;
             }
 
-            // 4. Alimentar papel: ESC d 4
-            if (feedLines) {
-                baos.write(new byte[]{0x1B, 0x64, 0x04});
+            // Avance mínimo: cortar exactamente a medio centímetro (~40 puntos / 1 línea)
+            // ESC J 36 (avanza exactamente 36 puntos = aprox 4.5 mm)
+            if (advanceMargin) {
+                baos.write(new byte[]{0x1B, 0x4A, 0x24});
             }
 
-            // 5. Corte parcial de papel: GS V 66 0
-            if (cutPaper) {
-                baos.write(new byte[]{0x1D, 0x56, 0x42, 0x00});
-            }
         } catch (IOException ignored) {}
 
         ProcessedResult result = new ProcessedResult();
-        result.previewBitmap = preview;
+        result.previewBitmap = finalBitmap;
         result.escPosBytes = baos.toByteArray();
         return result;
     }

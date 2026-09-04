@@ -62,13 +62,14 @@ jobs:
         continue-on-error: true
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
-          tag_name: v1.0.1
-          name: "TermiPrint Pro v1.0.1 (APK Instalable)"
+          tag_name: v1.0.2
+          name: "TermiPrint Pro v1.0.2 (APK Instalable)"
           body: |
-            ### 🖨️ TermiPrint Pro para Android (Xiaomi HyperOS)
-            - **100% Nativo:** Integrado directamente en el menú **"Compartir"** de Android para PDFs e imágenes.
-            - **Bluetooth directo:** Conexión SPP nativa para impresoras de 576 puntos (80 mm).
-            - **Cero marcas de agua:** Tickets y recibos limpios sin texto publicitario.
+            ### 🖨️ TermiPrint Pro v1.0.2 para Android
+            - **Recorte inteligente de espacio en blanco inferior:** Corta a medio centímetro del final del contenido real.
+            - **Fecha y hora al pie del ticket:** Impresión clara de fecha y hora al terminar.
+            - **Icono HD en pantalla:** Icono grande, nítido y con alto contraste en el escritorio de Android.
+            - **Bluetooth nativo y menú Compartir:** Integración total sin marcas publicitarias.
             
             **Instrucciones:**
             Descarga `TermiPrint-Pro.apk` en tu tablet Xiaomi, ábrelo para instalar y listo.
