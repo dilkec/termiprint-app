@@ -36,7 +36,12 @@ jobs:
           fi
 
       - name: Compilar APK con Gradle
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: |
+          ./gradlew assembleDebug --no-daemon --stacktrace || {
+            echo "========== ERROR COMPLETO DE GRADLE =========="
+            ./gradlew assembleDebug --no-daemon --info
+            exit 1
+          }
 
       - name: Renombrar APK compilado
         run: |

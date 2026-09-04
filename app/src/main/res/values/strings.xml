@@ -5,6 +5,7 @@
     <string name="btn_connect_bt">Vincular Bluetooth</string>
     <string name="btn_disconnect_bt">Desconectar</string>
     <string name="btn_print_576">Imprimir a 576 Puntos</string>
+    <string name="btn_print_384">Imprimir a 384 Puntos</string>
     <string name="select_file">Elegir Archivo (PDF o Imagen)</string>
     <string name="preview_title">Vista Previa de Impresión Térmica</string>
     <string name="no_file_loaded">Comparte un PDF/imagen desde otra app o tócalo aquí para cargar.</string>

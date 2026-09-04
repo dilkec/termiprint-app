@@ -182,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
         currentProcessed = EscPosRasterizer.process(currentRawBitmap, targetWidth, threshold, feed, cut);
 
         ivThermalPreview.setImageBitmap(currentProcessed.previewBitmap);
-        btnPrint.setText(targetWidth == 576 ? R.string.btn_print_576 : R.string.btn_print_576);
+        btnPrint.setText(targetWidth == 576 ? R.string.btn_print_576 : R.string.btn_print_384);
         btnPrint.setEnabled(true);
     }
 
