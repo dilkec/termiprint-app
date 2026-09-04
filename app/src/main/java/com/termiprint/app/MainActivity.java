@@ -136,14 +136,26 @@ public class MainActivity extends AppCompatActivity {
         if (intent == null) return;
 
         String action = intent.getAction();
-        String type = intent.getType();
 
         // 1. Recibido desde el menú "COMPARTIR" de Android (SEND)
-        if (Intent.ACTION_SEND.equals(action) && type != null) {
+        if (Intent.ACTION_SEND.equals(action)) {
+            // Caso A: Archivo binario adjunto (PDF o imagen descargada)
             Uri streamUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
             if (streamUri != null) {
                 handleSelectedUri(streamUri);
                 Toast.makeText(this, "Documento recibido para imprimir", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Caso B: Enlace web o dirección de internet compartida desde Chrome
+            String sharedText = intent.getStringExtra(Intent.EXTRA_TEXT);
+            if (sharedText != null && !sharedText.trim().isEmpty()) {
+                String url = extractUrl(sharedText);
+                if (url != null) {
+                    downloadAndProcessUrl(url);
+                    Toast.makeText(this, "Descargando documento...", Toast.LENGTH_SHORT).show();
+                    return;
+                }
             }
         }
         // 2. Abierto directamente desde el explorador de archivos (VIEW)
@@ -153,6 +165,58 @@ public class MainActivity extends AppCompatActivity {
                 handleSelectedUri(data);
             }
         }
+    }
+
+    private String extractUrl(String text) {
+        String[] parts = text.split("\\s+");
+        for (String part : parts) {
+            if (part.startsWith("http://") || part.startsWith("https://")) {
+                return part;
+            }
+        }
+        return null;
+    }
+
+    private void downloadAndProcessUrl(String fileUrl) {
+        tvDocumentName.setText("Descargando: " + fileUrl);
+        progressBar.setVisibility(View.VISIBLE);
+        progressBar.setIndeterminate(true);
+
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(fileUrl);
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android 14)");
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+                conn.connect();
+
+                String contentType = conn.getContentType();
+                boolean isPdf = (contentType != null && contentType.contains("pdf")) || fileUrl.toLowerCase().contains(".pdf");
+                java.io.File tempFile = new java.io.File(getCacheDir(), isPdf ? "downloaded_doc.pdf" : "downloaded_image.png");
+
+                try (java.io.InputStream in = conn.getInputStream();
+                     java.io.FileOutputStream out = new java.io.FileOutputStream(tempFile)) {
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    while ((bytesRead = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, bytesRead);
+                    }
+                }
+
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    handleSelectedUri(Uri.fromFile(tempFile));
+                    Toast.makeText(MainActivity.this, "Documento listo para imprimir", Toast.LENGTH_SHORT).show();
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    tvDocumentName.setText("Error al descargar archivo.");
+                    Toast.makeText(MainActivity.this, "Error al descargar: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
     }
 
     private void handleSelectedUri(Uri uri) {

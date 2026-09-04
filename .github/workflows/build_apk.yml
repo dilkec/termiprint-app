@@ -62,8 +62,8 @@ jobs:
         continue-on-error: true
         if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         with:
-          tag_name: v1.0.0
-          name: "TermiPrint Pro v1.0.0 (APK Instalable)"
+          tag_name: v1.0.1
+          name: "TermiPrint Pro v1.0.1 (APK Instalable)"
           body: |
             ### 🖨️ TermiPrint Pro para Android (Xiaomi HyperOS)
             - **100% Nativo:** Integrado directamente en el menú **"Compartir"** de Android para PDFs e imágenes.
