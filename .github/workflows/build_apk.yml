@@ -1,0 +1,63 @@
+name: Compilar APK Android TermiPrint
+
+on:
+  push:
+    branches: [ "**" ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Compilar TermiPrint.apk
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar codigo fuente
+        uses: actions/checkout@v4
+
+      - name: Configurar Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Dar permisos de ejecucion a gradlew
+        run: chmod +x gradlew
+
+      - name: Compilar APK con Gradle
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Renombrar APK compilado
+        run: |
+          mkdir -p release_apk
+          cp app/build/outputs/apk/debug/app-debug.apk release_apk/TermiPrint-Pro.apk
+
+      - name: Subir APK como Artefacto descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: TermiPrint-Pro-APK
+          path: release_apk/TermiPrint-Pro.apk
+
+      - name: Crear Release publica con APK instalable
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        with:
+          tag_name: v1.0.0
+          name: "TermiPrint Pro v1.0.0 (APK Instalable)"
+          body: |
+            ### 🖨️ TermiPrint Pro para Android (Xiaomi HyperOS)
+            - **100% Nativo:** Integrado directamente en el menú **"Compartir"** de Android para PDFs e imágenes.
+            - **Bluetooth directo:** Conexión SPP nativa para impresoras de 576 puntos (80 mm).
+            - **Cero marcas de agua:** Tickets y recibos limpios sin texto publicitario.
+            
+            **Instrucciones:**
+            Descarga `TermiPrint-Pro.apk` en tu tablet Xiaomi, ábrelo para instalar y listo.
+          files: release_apk/TermiPrint-Pro.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
