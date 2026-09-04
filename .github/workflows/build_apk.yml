@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Descargar codigo fuente
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configurar Java JDK 17
         uses: actions/setup-java@v4
@@ -40,16 +42,9 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace > gradle_build.log 2>&1 || true
           if [ ! -f app/build/outputs/apk/debug/app-debug.apk ]; then
             echo "================ ERROR COMPLETO DE COMPILACION ================"
-            cat gradle_build.log
+            tail -n 100 gradle_build.log
             exit 1
           fi
-
-      - name: Subir log de compilacion
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gradle-build-log
-          path: gradle_build.log
 
       - name: Renombrar APK compilado
         run: |
@@ -80,3 +75,14 @@ jobs:
           files: release_apk/TermiPrint-Pro.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publicar log de error si la compilacion fallo
+        if: failure()
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git checkout -B debug-log
+          cp gradle_build.log build_error.txt
+          git add build_error.txt
+          git commit -m "Registro automatico del error de compilacion"
+          git push -f origin debug-log
